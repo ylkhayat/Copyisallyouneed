@@ -37,7 +37,7 @@ import ipdb
 import transformers
 from transformers import BertTokenizer, AutoModel, AutoTokenizer, GPT2LMHeadModel
 import pickle
-from torch.cuda.amp import autocast, GradScaler
+from torch.amp import autocast, GradScaler
 import argparse
 from torch.nn.utils.rnn import pad_sequence
 import joblib
@@ -47,6 +47,7 @@ import torch.multiprocessing
 import linecache
 import nanopq
 from scipy.stats import pearsonr, spearmanr
+import glob
 
 logging.getLogger("transformers").setLevel(logging.WARNING)
 logging.getLogger("transformers.tokenization_utils").setLevel(logging.ERROR)

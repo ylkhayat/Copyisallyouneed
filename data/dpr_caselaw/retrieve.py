@@ -1,3 +1,4 @@
+import os
 import torch
 import numpy as np
 import random
@@ -9,11 +10,11 @@ from tqdm import tqdm
 import torch.distributed as dist
 from utils import *
 
-
+local_rank = int(os.environ["LOCAL_RANK"])
 def parser_args():
     parser = argparse.ArgumentParser(description='train parameters')
-    parser.add_argument('--local-rank', type=int)
     parser.add_argument('--dataset', type=str)
+    parser.add_argument('--dataset_path', type=str)
     parser.add_argument('--batch_size', default=256, type=int)
     parser.add_argument('--pool_size', default=256, type=int)
     parser.add_argument('--chunk_size', default=256, type=int)
@@ -38,18 +39,21 @@ def load_datasets(path):
     return datasets, datasets_counter
 
 def search_one_job(worker_id):
-    label, embed = torch.load(f'dpr_chunk_{worker_id}_0.pt')
+    label, embed = torch.load(f"{args['dataset_path']}/dpr_chunk_{worker_id}_0.pt")
     print(f'[!] load {len(label)} samples from dpr_chunk_{worker_id}_0.pt')
     
     searcher = Searcher('Flat', dimension=768, nprobe=1)
-    searcher.load('dpr_faiss.ckpt', 'dpr_corpus.ckpt')
-    searcher.move_to_gpu(device=args['local_rank'])
+    searcher.load(f"{args['dataset_path']}/dpr_faiss.ckpt", f"{args['dataset_path']}/dpr_corpus.ckpt")
+    searcher.move_to_gpu(device=local_rank)
 
     # search
     collection = []
 
     pbar = tqdm(total=len(embed))
+    
     chunk_prefix_path = f'../{args["dataset"]}/dpr_search_chunk_{args["chunk_length"]}_{worker_id}.pkl'
+    if args['dataset_path']:
+        chunk_prefix_path = f"{args['dataset_path']}/dpr_search_chunk_{args['chunk_length']}_{worker_id}.pkl"
     counter = 0
 
     recall, acc, similarity = [], [], []
@@ -76,9 +80,13 @@ def search_one_job(worker_id):
 
 if __name__ == '__main__':
     args = vars(parser_args())
-    datasets, datasets_counter = load_datasets(f'../{args["dataset"]}/base_data_{args["chunk_length"]}.txt')
-    torch.cuda.set_device(args['local_rank'])
+    if "dataset_path" in args and args["dataset_path"]:
+        dataset_path = f"{args['dataset_path']}/base_data_{args['chunk_length']}.txt"
+    else:
+        dataset_path = f'../{args["dataset"]}/base_data_{args["chunk_length"]}.txt'
+    datasets, datasets_counter = load_datasets(dataset_path)
+    torch.cuda.set_device(local_rank)
     torch.distributed.init_process_group(backend='nccl', init_method='env://')
 
-    search_one_job(args['local_rank'])
+    search_one_job(local_rank)
 

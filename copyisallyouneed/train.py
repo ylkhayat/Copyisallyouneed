@@ -3,20 +3,22 @@ from dataloader import *
 from models import *
 from config import *
 
+local_rank = int(os.environ['LOCAL_RANK'])
+print(f'[!] local rank: {local_rank}')
 
 def parser_args():
     parser = argparse.ArgumentParser(description='train parameters')
     parser.add_argument('--dataset', default='ecommerce', type=str)
     parser.add_argument('--model', type=str)
+    parser.add_argument('--dataset_path', type=str)
     parser.add_argument('--multi_gpu', type=str, default=None)
-    parser.add_argument('--local_rank', type=int)
     parser.add_argument('--total_workers', type=int)
     return parser.parse_args()
 
 
 def main(**args):
     torch.cuda.empty_cache()
-    torch.cuda.set_device(args['local_rank'])
+    torch.cuda.set_device(local_rank)
     torch.distributed.init_process_group(backend='nccl', init_method='env://')
 
     args['global_rank'] = dist.get_rank()
@@ -26,8 +28,7 @@ def main(**args):
     config = load_config(args)
     args.update(config)
     train_data, train_iter, sampler = load_dataset(args)
-    
-    if args['local_rank'] == 0:
+    if local_rank == 0:
         sum_writer = SummaryWriter(
             log_dir=f'{args["root_dir"]}/rest/{args["dataset"]}/{args["model"]}/{args["version"]}',
         )
@@ -36,13 +37,14 @@ def main(**args):
         
     args['warmup_step'] = int(args['warmup_ratio'] * args['total_step'])
     agent = load_model(args)
-    pbar = tqdm(total=args['total_step'])
     current_step, over_train_flag = 0, False
+    pbar = tqdm(total=args['total_step'], initial=current_step)
     sampler.set_epoch(0)    # shuffle for DDP
     if agent.load_last_step:
         current_step = agent.load_last_step + 1
         print(f'[!] load latest step: {current_step}')
-    for _ in range(100000000):
+        pbar.update(current_step)
+    for _ in range(1000):
         for batch in train_iter:
             agent.train_model(
                 batch, 

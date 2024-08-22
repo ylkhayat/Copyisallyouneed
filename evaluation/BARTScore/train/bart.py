@@ -7,11 +7,11 @@ from datasets import load_dataset
 from torch.utils.data.dataloader import DataLoader
 from tqdm.auto import tqdm
 from transformers import (
-    AdamW,
     DataCollatorForSeq2Seq,
     get_scheduler,
     set_seed,
 )
+import torch.optim as optim
 import time
 from transformers import BartTokenizer, BartForConditionalGeneration
 
@@ -106,7 +106,7 @@ class BART:
                 "weight_decay": 0.0,
             },
         ]
-        optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate)
+        optimizer = optim.AdamW(optimizer_grouped_parameters, lr=args.learning_rate)
 
         # Prepare everything with our `accelerator`.
         model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(

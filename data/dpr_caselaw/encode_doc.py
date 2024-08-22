@@ -1,4 +1,7 @@
-import os
+import torch.distributed
+import torch.utils
+import torch.utils.data
+import torch.utils.data.distributed
 from transformers import DPRContextEncoder, DPRContextEncoderTokenizer
 import torch.nn.functional as F
 import torch
@@ -7,12 +10,14 @@ import ipdb
 import argparse
 from tqdm import tqdm
 import torch.distributed as dist
+import os
 
 local_rank = int(os.environ["LOCAL_RANK"])
+print(f"[!] local rank: {local_rank}")
 
 def parser_args():
     parser = argparse.ArgumentParser(description='train parameters')
-    parser.add_argument('--data_path', default='ecommerce', type=str)
+    parser.add_argument('--dataset_path', default='ecommerce', type=str)
     parser.add_argument('--batch_size', default=256, type=int)
     parser.add_argument('--cut_size', type=int, default=500000)
     return parser.parse_args()
@@ -53,32 +58,32 @@ def inference_one_batch(text_list):
     return embeddings.cpu() 
 
 def inference(**args):
-    data = DPRDataset(args['data_path'])
+    data = DPRDataset(f"{args['dataset_path']}/base_data_128.txt")
     sampler = torch.utils.data.distributed.DistributedSampler(data)
     data_iter = DataLoader(data, batch_size=args['batch_size'], collate_fn=data.collate, sampler=sampler)
     sampler.set_epoch(0)
 
     text_lists, embeddings, size, counter = [], [], 0, 0
     for documents, labels in tqdm(data_iter):
+        # print(f"[!] data documents length: {len(documents)}")
         embed = inference_one_batch(documents)
         text_lists.extend(labels)
         embeddings.append(embed)
         size += len(embed)
         if len(embeddings) > args['cut_size']:
             embed = torch.cat(embeddings)
-            torch.save((text_lists, embed), f'dpr_chunk_{local_rank}_{counter}.pt')
+            torch.save((text_lists, embed), f"{args['dataset_path']}/dpr_chunk_{local_rank}_{counter}.pt")
             counter += 1
             embeddings = []
     if len(embed) > 0:
         embed = torch.cat(embeddings)
-        torch.save((text_lists, embed), f'dpr_chunk_{local_rank}_{counter}.pt')
+        torch.save((text_lists, embed), f"{args['dataset_path']}/dpr_chunk_{local_rank}_{counter}.pt")
 
 if __name__ == "__main__":
     tokenizer = DPRContextEncoderTokenizer.from_pretrained("facebook/dpr-ctx_encoder-single-nq-base")
     model = DPRContextEncoder.from_pretrained("facebook/dpr-ctx_encoder-single-nq-base")
     
     args = vars(parser_args())
-    torch.cuda.set_device(local_rank)
     torch.distributed.init_process_group(backend='nccl', init_method='env://')
     model.cuda()
     model.eval()

@@ -1,3 +1,4 @@
+import os
 import torch
 import numpy as np
 import random
@@ -9,10 +10,10 @@ from tqdm import tqdm
 import torch.distributed as dist
 from utils import *
 
+local_rank = int(os.environ["LOCAL_RANK"])
 
 def parser_args():
     parser = argparse.ArgumentParser(description='train parameters')
-    parser.add_argument('--local_rank', type=int)
     parser.add_argument('--dataset', type=str)
     parser.add_argument('--batch_size', default=256, type=int)
     parser.add_argument('--pool_size', default=256, type=int)
@@ -43,7 +44,7 @@ def search_one_job(worker_id):
     
     searcher = Searcher('Flat', dimension=768, nprobe=1)
     searcher.load('dpr_faiss.ckpt', 'dpr_corpus.ckpt')
-    searcher.move_to_gpu(device=args['local_rank'])
+    searcher.move_to_gpu(device=local_rank)
 
     # search
     collection = []
@@ -77,8 +78,8 @@ def search_one_job(worker_id):
 if __name__ == '__main__':
     args = vars(parser_args())
     datasets, datasets_counter = load_datasets(f'../{args["dataset"]}/base_data_{args["chunk_length"]}.txt')
-    torch.cuda.set_device(args['local_rank'])
+    torch.cuda.set_device(local_rank)
     torch.distributed.init_process_group(backend='nccl', init_method='env://')
 
-    search_one_job(args['local_rank'])
+    search_one_job(local_rank)
 

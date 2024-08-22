@@ -1,6 +1,6 @@
 #!/bin/bash
 
-worker=(0 1 2 3 4 5 6 7)
+worker=(0)
 for i in ${worker[@]}
 do
     echo "worker $i begin"

@@ -94,6 +94,6 @@ if __name__ == "__main__":
             p_features=gt_f,
             q_features=pre_f,
             device_id=args['device'],
-            mauve_scaling_factor=1.0, 
+            mauve_scaling_factor=1, 
         )
     print('Results for', args['test_path'], 'MAUVE:', out.mauve, 'Dataset size', len(dataset), file=open(f'{args["test_path"]}_result.txt', 'w'))

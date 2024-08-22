@@ -49,6 +49,6 @@ if __name__ == "__main__":
         device_id=args['device'], 
         max_text_length=512, 
         verbose=False, 
-        mauve_scaling_factor=1.0, 
+        mauve_scaling_factor=1, 
     )
     print('MAUVE:', out.mauve)

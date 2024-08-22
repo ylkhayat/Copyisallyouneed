@@ -1,8 +1,8 @@
 from header import *
 from .util_func import *
 
-
-class CopyisallyouneedWikitext103V2Dataset(Dataset):
+local_rank = int(os.environ['LOCAL_RANK'])
+class CopyisallyouneedDataset(Dataset):
     
     def __init__(self, **args):
         self.args = args
@@ -11,7 +11,8 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
         self.prefix_token_id = self.bert_vocab.convert_tokens_to_ids('[PREFIX]')
         self.vocab = AutoTokenizer.from_pretrained(args['prefix_encoder_tokenizer'][args['lang']])
         self.data_root_path = args['data_root_dir']
-        self.file_lists = [f'{self.data_root_path}/dpr_search_result_128_{i}.txt' for i in range(8)]
+        print(f'[!] load the data from {self.data_root_path}')
+        self.file_lists = [f'{self.data_root_path}/dpr_search_result_128_{i}.txt' for i in range(1)]
         # count the number of the samples
         self.size = 0
         for path in self.file_lists:
@@ -21,7 +22,7 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
             new_seed = args['seed'] + args['global_rank']
             random.seed(new_seed)
             random.shuffle(self.file_lists)
-            print(f'[!] file list for worker {self.args["local_rank"]}:')
+            print(f'[!] file list for worker {local_rank}:')
             print(self.file_lists)
 
         self.current_file_index = 0
@@ -137,6 +138,7 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
                 self.last_delta = 0
                 self.cache.pop(0)
 
+            # print(f"cache_phrase size: {np.asarray(cache_phrase).shape}")
             # collect
             gpt2_batch.append(cache_phrase)
 
@@ -184,6 +186,11 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
             phrase_start_index.append(start_index + 1)
             phrase_end_index.append(end_index + 1)
             error_label.append(False)
+            
+        # print(f"phrase_start_index size: {np.asarray(phrase_start_index).shape}")
+        # print(f"phrase_end_index size: {np.asarray(phrase_end_index).shape}")
+        # print(f"error_label size: {np.asarray(error_label).shape}")
+
         max_bert_length = max([len(i) for i in bert_batch])
 
         # process the gpt2_batch
@@ -193,6 +200,7 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
             phrases = [phrase for phrase, _ in text]
             is_phrase = [label for _, label in text]
             phrase_ids = self.vocab(phrases, add_special_tokens=False)['input_ids']
+            # print(f"phrase_ids size: {len(phrase_ids)}")
             ids, end_labels_, start_labels_ = [], [], []
             for ids_, label in zip(phrase_ids, is_phrase):
                 start_ids_ = deepcopy(ids_)
@@ -214,6 +222,9 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
             gpt2_ids.append(ids)
             start_labels.append(start_labels_)
             end_labels.append(end_labels_)
+        # print(f"gpt2_ids size: {len(gpt2_ids)}")
+        # print(f"start_labels size: {len(start_labels)}")
+        # print(f"end_labels size: {len(end_labels)}")
         assert counter == len(phrase_to_doc) + sum(error_label)
         query_num = counter - sum(error_label)
             
@@ -225,7 +236,6 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
         bert_ids = pad_sequence([torch.LongTensor(i) for i in bert_batch], padding_value=self.bert_vocab.pad_token_id, batch_first=True)
         gpt2_mask = generate_mask(gpt2_ids, pad_token_idx=self.vocab.eos_token_id)
         bert_mask = generate_mask(bert_ids, pad_token_idx=self.bert_vocab.pad_token_id)
-        
         ###### prepare the document mask (only for the query position)
         ###### [Q, N_p]
         total_phrase_num = bert_ids.size(0) * bert_ids.size(1)
@@ -236,7 +246,18 @@ class CopyisallyouneedWikitext103V2Dataset(Dataset):
             start_pos = phrase_to_doc[i] * chunk_size
             end_pos = phrase_to_doc[i] * chunk_size + chunk_size 
             pos_mask[i, start_pos:end_pos] = 1
+            # print(f"phrase_to_doc item: {phrase_to_doc[i]}")
+            # print(f"start_pos: {start_pos}, end_pos: {end_pos}")
+            # print(f"pos_mask size: {pos_mask[i].shape}")
 
+
+        # print(f"gpt2_ids size: {gpt2_ids.size()}")
+        # print(f"start_labels size: {start_labels.size()}")
+        # print(f"end_labels size: {end_labels.size()}")
+        # print(f"bert_ids size: {bert_ids.size()}")
+        # print(f"gpt2_mask size: {gpt2_mask.size()}")
+        # print(f"bert_mask size: {bert_mask.size()}")
+        # print(f"pos_mask size: {pos_mask.size()}")
         ###### get the query_pos position
         # labels = (start_labels.reshape(-1) > len(self.vocab)).to(torch.long)
         return gpt2_ids, start_labels, end_labels, bert_ids, gpt2_mask, bert_mask, pos_mask

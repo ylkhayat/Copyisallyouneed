@@ -1,28 +1,44 @@
 datasets: 
     wikitext103: en
-    chinese_documents: zh
-    lawmt: en
-    en_wiki: en
+    # chinese_documents: zh
+    # lawmt: en
+    # en_wiki: en
+    caselaw: en
 
 models:
     copyisallyouneed: 
         model_name: Copyisallyouneed
-        dataset_name: CopyisallyouneedWikitext103V2Dataset
-    gpt2:
-        model_name: GPT2Baseline
-        # dataset_name: GPT2Dataset
-        dataset_name: GPT2PPLDataset
-    knnlm:
-        model_name: KNNLMBaseline
-        # dataset_name: KNNLMInferenceDataset
-        dataset_name: GPT2PPLDataset
+        dataset_name: CopyisallyouneedDataset
+    # gpt2:
+    #     model_name: GPT2Baseline
+    #     # dataset_name: GPT2Dataset
+    #     dataset_name: GPT2PPLDataset
+    # knnlm:
+    #     model_name: KNNLMBaseline
+    #     # dataset_name: KNNLMInferenceDataset
+    #     dataset_name: GPT2PPLDataset
 
 
 # ========= Global configuration ========== #
 # root_dir: /dockerdata/johntianlan/sources/Copyisallyouneed
-root_dir: /apdcephfs/share_916081/johntianlan/copyisallyouneed
+root_dir: /srv/elkhyo/Copyisallyouneed
 # data_root_dir: /dockerdata/johntianlan/sources/Copyisallyouneed/data/wikitext103_1024
 # data_root_dir: /apdcephfs/share_916081/johntianlan/copyisallyouneed/data/lawmt_1024
-data_root_dir: /apdcephfs/share_916081/johntianlan/copyisallyouneed/data/en_wiki_1024
-version: 2004
+# data_root_dir: /home/elkhyo/Copyisallyouneed/data/caselaw
+# data_root_dir: /srv/elkhyo/data/iterations/sample_0_1/uncited
+# version: 1
+# data_root_dir: /srv/elkhyo/data/iterations/sample_0_1/cited
+# version: 2
+# data_root_dir: /srv/elkhyo/data/iterations/sample_0_1/uncited
+# version: 3
+# data_root_dir: /srv/elkhyo/data/iterations/veterans/uncited
+# version: 4
+# data_root_dir: /srv/elkhyo/Copyisallyouneed/data/wikitext103_1024
+# version: 5
+# data_root_dir: /srv/elkhyo/data/iterations/veterans/cited
+# version: 7
+# data_root_dir: /srv/elkhyo/data/iterations/veterans/cited-0_1
+# version: 8
+data_root_dir: /srv/elkhyo/data/iterations/veterans/cited
+version: 9
 # ========= Global configuration ========== #

@@ -1,6 +1,8 @@
 from header import *
 import spacy
 
+local_rank = int(os.environ['LOCAL_RANK'])
+
 class Agent:
     
     def __init__(self, model, args):
@@ -8,7 +10,6 @@ class Agent:
         self.args = args
         self.model = model
         self.load_last_step = None
-
         if torch.cuda.is_available():
             self.model.cuda()
 
@@ -16,11 +17,11 @@ class Agent:
             self.set_optimizer_scheduler_ddp()
         if args['model'] == 'gpt2':
             self.train_model = self.train_model_gpt2
-        # self.load_latest_checkpoint()
+        self.load_latest_checkpoint()
 
     def set_optimizer_scheduler_ddp(self):
         if self.args['mode'] in ['train']:
-            self.optimizer = transformers.AdamW(
+            self.optimizer = optim.AdamW(
                 self.model.parameters(), 
                 lr=self.args['lr'],
             )
@@ -32,14 +33,14 @@ class Agent:
             )
             self.model = nn.parallel.DistributedDataParallel(
                 self.model, 
-                device_ids=[self.args['local_rank']], 
-                output_device=self.args['local_rank'],
+                device_ids=[local_rank], 
+                output_device=local_rank,
                 find_unused_parameters=True,
             )
 
     def load_model(self, path):
         if self.args['mode'] == 'train':
-            state_dict = torch.load(path, map_location=torch.device('cpu'))
+            state_dict = torch.load(path, map_location=torch.device('cpu'), weights_only=True)
             model_state_dict = state_dict['model_state_dict']
             self.model.module.load_state_dict(model_state_dict)
             self.load_last_step = state_dict['step']
@@ -47,7 +48,7 @@ class Agent:
             self.optimizer.load_state_dict(state_dict['optimizer_state_dict'])
             print(f'[!] load the latest model from {path}')
         else:
-            state_dict = torch.load(path, map_location=torch.device('cpu'))['model_state_dict']
+            state_dict = torch.load(path, map_location=torch.device('cpu'), weights_only=True)['model_state_dict']
             try:
                 self.model.module.load_state_dict(state_dict)
             except:
@@ -56,8 +57,10 @@ class Agent:
     
     def train_model(self, batch, recoder=None, current_step=0, pbar=None):
         self.model.train()
-        with autocast():
+        with autocast('cuda'):
             batch['current_step'] = current_step
+            # print(f"[!] GPT2 {batch['gpt2_ids'].shape}")
+            # print(f"[!] BERT {batch['bert_ids'].shape}")
             loss_0, loss_1, loss_2, acc_0, phrase_start_acc, phrase_end_acc, token_start_acc, token_end_acc = self.model(batch)
             loss = loss_0 + loss_1 + loss_2
             loss = loss / self.args['iter_to_accumulate']
@@ -366,7 +369,7 @@ class Agent:
 
     def train_model_gpt2(self, batch, recoder=None, current_step=0, pbar=None):
         self.model.train()
-        with autocast():
+        with autocast('cuda'):
             batch['current_step'] = current_step
             loss, acc = self.model(batch)
         self.scaler.scale(loss).backward()
@@ -443,7 +446,7 @@ class Agent:
                 embds = torch.cat(embds, dim=0).numpy()
                 torch.save(
                     (embds, texts), 
-                    f'{self.args["root_dir"]}/data/{self.args["dataset"]}_1024/knnlm/inference_{self.args["local_rank"]}_{counter}.pt'
+                    f'{self.args["root_dir"]}/data/{self.args["dataset"]}_1024/knnlm/inference_{local_rank}_{counter}.pt'
                 )
                 counter += 1
                 texts, embds = [], []
@@ -451,7 +454,7 @@ class Agent:
             embds = torch.cat(embds, dim=0).numpy()
             torch.save(
                 (embds, texts), 
-                f'{self.args["root_dir"]}/data/{self.args["dataset"]}_1024/knnlm/inference_{self.args["local_rank"]}_{counter}.pt'
+                f'{self.args["root_dir"]}/data/{self.args["dataset"]}_1024/knnlm/inference_{local_rank}_{counter}.pt'
             )
 
     @torch.no_grad()
