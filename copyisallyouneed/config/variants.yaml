@@ -1,0 +1,38 @@
+root_dir: /srv/elkhyo/Copyisallyouneed
+variants:
+  "1":
+    description: "Small Blind CoG v1"
+    dataset_name: caselaw
+    model_name: copyisallyouneed
+    data_root_dir: /srv/elkhyo/data/iterations/veterans/cited-0_1
+    port: 28444
+  "2":
+    description: "Large Blind CoG v2"
+    dataset_name: caselaw
+    model_name: copyisallyouneed
+    data_root_dir: /srv/elkhyo/data/iterations/veterans/new-cited
+    port: 28445
+  "3":
+    description: "Large Blind CoG v2"
+    dataset_name: wikitext103
+    model_name: copyisallyouneed
+    data_root_dir: /srv/elkhyo/data/iterations/wikitext103_1024
+    port: 2846
+  "7":
+    description: "Large Blind CoG v2"
+    dataset_name: caselaw
+    model_name: copyisallyouneed
+    data_root_dir: /srv/elkhyo/data/iterations/veterans/cited
+    port: 28447
+  "8":
+    description: "Large Blind CoG v2 — 1024"
+    dataset_name: caselaw
+    model_name: copyisallyouneed
+    data_root_dir: /srv/elkhyo/data/iterations/veterans/chunked
+    port: 28448
+  "9":
+    description: "Large Blind CoG v2 — 1024"
+    dataset_name: caselaw
+    model_name: copyisallyouneed
+    data_root_dir: /srv/elkhyo/data/iterations/veterans/chunked
+    port: 28449

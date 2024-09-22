@@ -24,7 +24,7 @@ MODES = {
 
 parser = argparse.ArgumentParser(description='Process raw data.')
 parser.add_argument('mode', choices=MODES.keys(), help='Mode of the data processing')
-parser.add_argument('variant', nargs='?', choices=['cited', 'uncited', ''], help='Variant of the data processing',  default='')
+parser.add_argument('variant', nargs='?', help='Variant of the data processing',  default='')
 args = parser.parse_args()
 
 mode = args.mode
@@ -36,7 +36,7 @@ base_data_processed_path = os.path.join(main_dir, 'original_base_data.txt')
 train_processed_path = os.path.join(main_dir, 'base_data.txt')
 test_processed_path = os.path.join(main_dir, 'test.txt')
 
-result = subprocess.run(['wc', '-l', raw_txt_path], stdout=subprocess.PIPE, text=True)
+result = subprocess.run(['wc', '-l', raw_txt_path], stdout=subprocess.PIPE, text=True, check=True)
 total_lines = int(result.stdout.split()[0])
 
 train_threshold = int(total_lines * train_split_threshold)

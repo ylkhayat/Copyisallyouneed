@@ -19,6 +19,7 @@ def parser_args():
     parser = argparse.ArgumentParser(description='train parameters')
     parser.add_argument('--dataset_path', default='ecommerce', type=str)
     parser.add_argument('--batch_size', default=256, type=int)
+    parser.add_argument('--chunk_length', default=128, type=int)
     parser.add_argument('--cut_size', type=int, default=500000)
     return parser.parse_args()
 
@@ -58,7 +59,7 @@ def inference_one_batch(text_list):
     return embeddings.cpu() 
 
 def inference(**args):
-    data = DPRDataset(f"{args['dataset_path']}/base_data_128.txt")
+    data = DPRDataset(f"{args['dataset_path']}/base_data_{args['chunk_length']}.txt")
     sampler = torch.utils.data.distributed.DistributedSampler(data)
     data_iter = DataLoader(data, batch_size=args['batch_size'], collate_fn=data.collate, sampler=sampler)
     sampler.set_epoch(0)

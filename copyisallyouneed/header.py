@@ -11,7 +11,7 @@ from torch.nn.utils import clip_grad_norm_
 from torch.nn import DataParallel
 from torch.optim import lr_scheduler
 from torch.utils.tensorboard import SummaryWriter
-import torch.optim as optim
+from torch.optim.adamw import AdamW
 import torch.nn as nn
 import torch.nn.functional as F
 from collections import Counter

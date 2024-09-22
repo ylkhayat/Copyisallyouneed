@@ -19,7 +19,7 @@ def update_progress_bar(file_path, pbar):
     pbar.total = number_of_lines
     pbar.refresh()
 
-chunk_size = 128
+chunk_size = 512
 
 base_path = '/srv/elkhyo/data/iterations'
 # Define modes
@@ -29,7 +29,8 @@ MODES = {
     'sample_0_1': f'{base_path}/sample_0_1',
     'most_cited_3': f'{base_path}/most_cited_3',
     'supreme_court': f'{base_path}/supreme_court',
-    'veterans': f'{base_path}/veterans'
+    'veterans': f'{base_path}/veterans',
+    'veterans_hf': f'{base_path}/veterans_hf'
 }
 
 parser = argparse.ArgumentParser(description='Process raw data.')
@@ -65,21 +66,25 @@ def write_line_to_file(writing):
     counter += 1
     return 1
 
+from_hf = False
 line_counter = 0
 for line in pbar:
-    text = '\t'.join(line.strip().split('\t')[:-1])
+    if from_hf:
+        text = '\t'.join(line.strip().split('\t')[1:-1])
+    else:
+        text = '\t'.join(line.strip().split('\t')[:-1])
     cleaned_text = clean_line_train(text)
     sentences = sentence_token_nltk(cleaned_text)
     cache, counter = [], 0
     for sent in sentences:
-        tokens = sent.split(' ')
-        for i in range(0, len(tokens), chunk_size):
-            current_tokens_chunk = tokens[i:i + chunk_size]
-            if len(cache) + len(current_tokens_chunk) > chunk_size and len(cache) > 0:
+        words = sent.split(' ')
+        for word in words:
+            cummulative_words_length = sum(len(word) for word in cache) + len(cache) + len(word) + 1
+            if cummulative_words_length > chunk_size and len(cache) > 0:
                 write_line_to_file(cache)
-                cache = current_tokens_chunk
+                cache = [word]
             else:
-                cache.extend(current_tokens_chunk)
+                cache.append(word)
     if len(cache) > 0:
         if len(cache) > chunk_size:
             print(f"[!] length of cache {len(cache)}")

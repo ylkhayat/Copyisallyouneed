@@ -8,10 +8,9 @@ from transformers import DPRContextEncoder, DPRContextEncoderTokenizer
 import argparse
 from tqdm import tqdm
 import torch.distributed as dist
-from utils import *
+from .utils import *
 
-local_rank = int(os.environ['LOCAL_RANK'])
-
+local_rank = int(os.environ['LOCAL_RANK'] if 'LOCAL_RANK' in os.environ else 0)
 
 def parser_args():
     parser = argparse.ArgumentParser(description='train parameters')

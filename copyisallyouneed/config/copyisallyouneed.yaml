@@ -20,14 +20,15 @@ train:
     grad_clip: 1.0
     seed: 0
     batch_size: 1
-    max_len: 512
+    max_len: 512 # probably same as chunk_length
+    chunk_length: 1024
     warmup_ratio: 0.
     iter_to_accumulate: 1
-    # max_doc_size: 32
-    max_doc_size: 64
+    max_doc_size: 32
+    # max_doc_size: 64
     buffer_size: 81920
     # buffer_size: 163840
-    total_step: 10000010
+    total_step: 400010
     save_every: 20000
     temp: 1.0
     min_phrase_length: 1

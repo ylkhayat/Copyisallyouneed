@@ -1,12 +1,19 @@
 import re
 import nltk
-from eyecite import get_citations, clean_text, resolve_citations, annotate_citations
+from eyecite import get_citations, clean_text
 
 def clean_line_train(line):
     cleaned_text = clean_text(line, ['html', 'all_whitespace'])
     citations = get_citations(cleaned_text)
     for citation in citations:
-        cleaned_text = cleaned_text.replace(citation.matched_text(), '<citation>')
+        citation_full = citation.corrected_citation_full()
+        # print(citation.groups.values())
+        if citation_full in cleaned_text:
+            cleaned_text = cleaned_text.replace(citation_full, '<citation>')
+        else:
+            # print(f"[!] {citation_full} not found in {cleaned_text}")
+            # break
+            cleaned_text = cleaned_text.replace(citation.matched_text(), '<citation>')
     cleaned_text = re.sub(r'(,*\s*)*<citation>', ' <citation>', cleaned_text)
     cleaned_text = re.sub(r'<citation>(\s*,*\s*)*', '<citation>', cleaned_text)
     cleaned_text = re.sub(r'<citation>(\d*-*\d*\s*)*', '<citation>', cleaned_text)
@@ -17,6 +24,19 @@ def clean_line_train(line):
     cleaned_text = cleaned_text.replace(' . ', '. ')
     cleaned_text = cleaned_text.replace(' , ', ', ')
     cleaned_text = cleaned_text.replace(' ; ', '; ')
+    cleaned_text = cleaned_text.replace(' : ', ': ')
+    cleaned_text = cleaned_text.replace(' ! ', '! ')
+    cleaned_text = cleaned_text.replace(' ? ', '? ')
+    cleaned_text = cleaned_text.replace(' ( ', ' (')
+    cleaned_text = cleaned_text.replace(' ) ', ') ')
+    cleaned_text = cleaned_text.replace('“','"')
+    cleaned_text = cleaned_text.replace('”','"')
+    cleaned_text = cleaned_text.replace('’',"'")
+    cleaned_text = cleaned_text.replace('‘',"'")
+    cleaned_text = cleaned_text.replace(' - ', '-')
+    cleaned_text = cleaned_text.replace(' -', '-')
+    cleaned_text = cleaned_text.replace('- ', '-')
+
     # cleaned_text = re.sub(r'<citation>\s*at\s*(\w*\s*\d*[,-]*)*', '<citation>', cleaned_text)
     # cleaned_text = re.sub(r'<citation> , \d*\s*(\(\d+\w*\))', '<citation>', cleaned_text)
     # cleaned_text = re.sub(r'<citation>\s*[,(and)]*\s*(\d+\.*\d+\s*)*(\(\d+\)\s*)*', '<citation>', cleaned_text)

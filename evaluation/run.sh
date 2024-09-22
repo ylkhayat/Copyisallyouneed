@@ -1,43 +1,43 @@
 #!/bin/bash
 
-cuda=$1
-# file_name=raw_files/wikitext103_gpt2_result_nucleus_sampling.json
-# file_name=raw_files/wikitext103_gpt2_result_greedy.json
-# file_name=raw_files/en_wiki_copyisallyouneed_result_nucleus_sampling.json
-# file_name=raw_files/wikitext103_neurlab_gpt2_result_nucleus_sampling_v2.json
-# file_name=raw_files/en_wiki_knnlm_result_nucleus_sampling_full.json
-# file_name=raw_files/en_wiki_knnlm_result_greedy_full.json
-# file_name=raw_files/lawmt_gpt2_result_greedy_v2.json
-# file_name=raw_files/en_wiki_gpt2_result_greedy_v2.json
-# file_name=raw_files/en_wiki_gpt2_result_nucleus_sampling_v2.json
-# file_name=raw_files/lawmt_knnlm_result_greedy_full.json
-# file_name=raw_files/lawmt_knnlm_result_nucleus_sampling_full.json
-# file_name=raw_files/lawmt_retro_result_greedy.json
-# file_name=raw_files/lawmt_retro_result_sampling.json
-# file_name=raw_files/random_runs_en_wiki_testset/en_wiki_copyisallyouneed_result_nucleus_sampling_on_en_wiki_testset_seed_1000.0_1.0.json
-# file_name=raw_files/random_runs_en_wiki_testset/en_wiki_copyisallyouneed_result_nucleus_sampling_on_en_wiki_testset_seed_1.0_1.0.json
-# file_name=raw_files/random_runs_en_wiki_testset/en_wiki_copyisallyouneed_result_nucleus_sampling_on_en_wiki_testset_seed_100.0_1.0.json
-# file_name=raw_files/random_runs/wikitext103_gpt2_result_nucleus_sampling_on_wikitext103_testset_seed_100.0_1.0.json
-# file_name=raw_files/wikitext103_gpt2_result_greedy.json
-# file_name=raw_files/wikitext103_knnlm_result_greedy_full.json
-# file_name=raw_files/random_runs_gpt2_en_wiki/en_wiki_gpt2_result_nucleus_sampling_on_wikitext103_testset_seed_1.0.json
-# file_name=raw_files/random_runs_en_wiki_testset/en_wiki_copyisallyouneed_result_greedy_wikitext_index_on_wikitext103_testset.json
-# file_name=raw_files/random_runs_en_wiki/en_wiki_knnlm_result_nucleus_sampling_on_wikitext103_index_wikitext103_testset_seed_5.0.json
-# file_name=raw_files/random_runs_en_wiki/en_wiki_knnlm_result_nucleus_sampling_on_wikitext103_index_wikitext103_testset_seed_1.0.json
-# file_name=raw_files/wikitext103_gpt2_result_greedy.json
-# file_name=raw_files/random_runs_retro/en_wiki_retro_result_greedy_en_wiki_index.json
-# file_name=raw_files/random_runs_retro/en_wiki_retro_result_sampling_random_seed_1.0_en_wiki_index.json
-# file_name=raw_files/random_runs_wikitext103_testset_knnlm/wikitext103_knnlm_result_nucleus_sampling_full_0.118_0.00785.json
-# file_name=raw_files/random_runs_wikitext103_testset_knnlm/wikitext103_knnlm_result_greedy_full_0.118_0.00785.json
-# file_name=raw_files/random_runs_lawmt/lawmt_knnlm_result_nucleus_sampling_seed_1.0.json
-# file_name=raw_files/random_runs_lawmt/lawmt_knnlm_result_greedy_full_0.118_0.00785.json
-file_name=raw_files/random_runs_lawmt/en_wiki_knnlm_result_greedy_full_0.118_0.00785.json
 
-# coherence
-# CUDA_VISIBLE_DEVICES=$cuda python coherence/test.py --test_path $file_name
+cd "/srv/elkhyo/Copyisallyouneed/evaluation" || exit
 
-# mauve
-# python mauve/test.py --test_path $file_name --device $cuda
+if [ -z "$CUDA_VISIBLE_DEVICES" ]; then
+    echo "CUDA_VISIBLE_DEVICES is not set. Please set it before running the script."
+    exit 1
+fi
 
-# diversity
-python diversity/test.py --test_path $file_name
+test_dir=$1
+device=cuda:$CUDA_VISIBLE_DEVICES
+
+basename_test_dir=$(basename "$test_dir")
+
+cd "/srv/elkhyo/Copyisallyouneed/evaluation" || exit
+
+if [ -z "$CUDA_VISIBLE_DEVICES" ]; then
+    echo "CUDA_VISIBLE_DEVICES is not set. Please set it before running the script."
+    exit 1
+fi
+
+test_dir=$1
+device=cuda:$CUDA_VISIBLE_DEVICES
+
+basename_test_dir=$(basename "$test_dir")
+parent_dir=$(dirname "$test_dir")
+
+# unieval
+python unieval/test.py --test_dir "$test_dir" --test_type "greedy" 
+python unieval/test.py --test_dir "$test_dir" --test_type "nucleus_sampling" 
+
+# align_score
+python align_score/test.py --test_dir "$test_dir" --test_type "greedy" --device "$device"
+python align_score/test.py --test_dir "$test_dir" --test_type "nucleus_sampling" --device "$device"
+
+# rouge
+python rouge/test.py --test_dir "$test_dir" --test_type "greedy" 
+python rouge/test.py --test_dir "$test_dir" --test_type "nucleus_sampling" 
+
+# bert_score
+python bert_score/test.py --test_dir "$test_dir" --test_type "greedy" --device "$device"
+python bert_score/test.py --test_dir "$test_dir" --test_type "nucleus_sampling" --device "$device"

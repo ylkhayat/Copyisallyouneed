@@ -1,7 +1,8 @@
 from header import *
 import spacy
+from transformers.optimization import get_linear_schedule_with_warmup
 
-local_rank = int(os.environ['LOCAL_RANK'])
+local_rank = int(os.environ['LOCAL_RANK'] if 'LOCAL_RANK' in os.environ else 0)
 
 class Agent:
     
@@ -15,18 +16,17 @@ class Agent:
 
         if args['mode'] in ['train']:
             self.set_optimizer_scheduler_ddp()
-        if args['model'] == 'gpt2':
-            self.train_model = self.train_model_gpt2
-        self.load_latest_checkpoint()
+        if args['mode'] == 'train':
+            self.load_latest_checkpoint()
 
     def set_optimizer_scheduler_ddp(self):
         if self.args['mode'] in ['train']:
-            self.optimizer = optim.AdamW(
+            self.optimizer = AdamW(
                 self.model.parameters(), 
                 lr=self.args['lr'],
             )
             self.scaler = GradScaler()
-            self.scheduler = transformers.get_linear_schedule_with_warmup(
+            self.scheduler = get_linear_schedule_with_warmup(
                 self.optimizer, 
                 num_warmup_steps=self.args['warmup_step'], 
                 num_training_steps=self.args['total_step'],
@@ -39,6 +39,7 @@ class Agent:
             )
 
     def load_model(self, path):
+        print(f"[!] current mode '{self.args['mode']}'")
         if self.args['mode'] == 'train':
             state_dict = torch.load(path, map_location=torch.device('cpu'), weights_only=True)
             model_state_dict = state_dict['model_state_dict']
@@ -50,9 +51,9 @@ class Agent:
         else:
             state_dict = torch.load(path, map_location=torch.device('cpu'), weights_only=True)['model_state_dict']
             try:
-                self.model.module.load_state_dict(state_dict)
+                self.model.module.load_state_dict(state_dict, strict=False)
             except:
-                self.model.load_state_dict(state_dict)
+                self.model.load_state_dict(state_dict, strict=False)
         print(f'[!] load model from {path}')
     
     def train_model(self, batch, recoder=None, current_step=0, pbar=None):
@@ -88,7 +89,7 @@ class Agent:
 
     def load_latest_checkpoint(self):
         path = f'{self.args["root_dir"]}/ckpt/{self.args["dataset"]}/{self.args["model"]}'
-        prefix_name = f'best_{self.args["version"]}_'
+        prefix_name = f'best_{self.args["model_version"]}_'
         checkpoints = []
         for file in os.listdir(path):
             if prefix_name in file:
@@ -239,7 +240,6 @@ class Agent:
         while len(ids[0]) <= prefix_length + self.args['max_gen_len']:
             ids, candidate = self.generate_one_step_fast(ids, phrase_reps, phrase_sources, decoding_method=decoding_method, top_k=top_k, top_p=top_p, temp=temp)
             candidates.append(candidate)
-            # encode the document prefix
             if len(ids[0]) > 32 and encode_time == 0:
                 prefix_phrase_reps, prefix_phrase_sources = self.get_prefix_phrases_fast([self.model.tokenizer.decode(ids[0])])
                 phrase_reps = torch.cat([phrase_reps, prefix_phrase_reps], dim=0)
@@ -366,96 +366,6 @@ class Agent:
         end_rep = torch.cat(end_rep)
         phrase_reps = torch.cat([self.model.s_proj(begin_rep), self.model.e_proj(end_rep)], dim=-1)
         return phrase_reps, phrase_sources
-
-    def train_model_gpt2(self, batch, recoder=None, current_step=0, pbar=None):
-        self.model.train()
-        with autocast('cuda'):
-            batch['current_step'] = current_step
-            loss, acc = self.model(batch)
-        self.scaler.scale(loss).backward()
-        self.scaler.unscale_(self.optimizer)
-        clip_grad_norm_(self.model.parameters(), self.args['grad_clip'])
-        self.scaler.step(self.optimizer)
-        self.scaler.update()
-        self.scheduler.step()
-        self.optimizer.zero_grad()
-
-        if recoder:
-            recoder.add_scalar(f'train/RunLoss', loss.item(), current_step)
-            recoder.add_scalar(f'train/Tokenacc', acc, current_step)
-        pbar.set_description(f'[!] loss: {round(loss.item(), 4)}; acc: {round(acc, 4)}')
-        pbar.update(1)
-
-    @torch.no_grad()
-    def gpt2_generation(self, prefix, decoding_method='nucleus_sampling', top_k=0, top_p=0.95, temp=1.0, get_time_cost=False):
-        # maximum 128 tokens
-        input_ids = self.model.vocab.encode(prefix, add_special_tokens=False)
-        input_ids = torch.LongTensor(input_ids).unsqueeze(dim=0).cuda()
-        length = len(input_ids[0])
-        use_cache = False if get_time_cost else True
-        bt = time.time()
-        if decoding_method == 'nucleus_sampling':
-            output = self.model.model.generate(
-                input_ids,
-                do_sample=True,
-                max_length=length+128,
-                top_p=top_p,
-                top_k=0,
-                use_cache=use_cache
-            )
-        else:
-            output = self.model.model.generate(
-                input_ids,
-                max_length=length+128,
-                use_cache=use_cache
-            )
-        inference_time = time.time() - bt
-        string = self.model.vocab.decode(output[0, length:])
-        return string, inference_time
-
-    @torch.no_grad()
-    def knnlm_generation(self, prefix, decoding_method='nucleus_sampling', top_k=0, top_p=0.95, temp=1.0, get_time_cost=False):
-        # maximum 128 tokens
-        input_ids = self.model.vocab.encode(prefix, add_special_tokens=False)
-        input_ids = torch.LongTensor(input_ids).unsqueeze(dim=0).cuda()
-        length = len(input_ids[0])
-        bt = time.time()
-        if decoding_method == 'nucleus_sampling':
-            string = self.model.nucleus_sampling(
-                input_ids,
-                max_length=128,
-                top_p=top_p,
-            )
-        elif decoding_method == 'greedy':
-            string = self.model.greedy_search(
-                input_ids,
-                max_length=128,
-            )
-        return string, time.time() - bt
-
-    @torch.no_grad()
-    def inference_knnlm(self, inf_iter, size=500000):
-        self.model.eval()
-        embds, texts = [], []
-        counter = 0
-        for batch in tqdm(inf_iter):
-            rep, target = self.model(batch)
-            embds.append(rep)
-            texts.extend(target)
-            if len(texts) > size:
-                embds = torch.cat(embds, dim=0).numpy()
-                torch.save(
-                    (embds, texts), 
-                    f'{self.args["root_dir"]}/data/{self.args["dataset"]}_1024/knnlm/inference_{local_rank}_{counter}.pt'
-                )
-                counter += 1
-                texts, embds = [], []
-        if len(texts) > 0:
-            embds = torch.cat(embds, dim=0).numpy()
-            torch.save(
-                (embds, texts), 
-                f'{self.args["root_dir"]}/data/{self.args["dataset"]}_1024/knnlm/inference_{local_rank}_{counter}.pt'
-            )
 
     @torch.no_grad()
     def test_model_ppl(self, test_iter, max_counter=10000):

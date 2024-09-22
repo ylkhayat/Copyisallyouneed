@@ -1,22 +1,14 @@
 datasets: 
     wikitext103: en
-    # chinese_documents: zh
-    # lawmt: en
-    # en_wiki: en
+    chinese_documents: zh
+    lawmt: en
+    en_wiki: en
     caselaw: en
 
 models:
     copyisallyouneed: 
         model_name: Copyisallyouneed
         dataset_name: CopyisallyouneedDataset
-    # gpt2:
-    #     model_name: GPT2Baseline
-    #     # dataset_name: GPT2Dataset
-    #     dataset_name: GPT2PPLDataset
-    # knnlm:
-    #     model_name: KNNLMBaseline
-    #     # dataset_name: KNNLMInferenceDataset
-    #     dataset_name: GPT2PPLDataset
 
 
 # ========= Global configuration ========== #
@@ -39,6 +31,6 @@ root_dir: /srv/elkhyo/Copyisallyouneed
 # version: 7
 # data_root_dir: /srv/elkhyo/data/iterations/veterans/cited-0_1
 # version: 8
-data_root_dir: /srv/elkhyo/data/iterations/veterans/cited
-version: 9
+# data_root_dir: /srv/elkhyo/data/iterations/veterans/cited
+# version: 9
 # ========= Global configuration ========== #

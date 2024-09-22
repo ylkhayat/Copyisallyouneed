@@ -1,7 +1,7 @@
 from header import *
 from .util_func import *
 
-local_rank = int(os.environ['LOCAL_RANK'])
+local_rank = int(os.environ['LOCAL_RANK'] if 'LOCAL_RANK' in os.environ else 0)
 class CopyisallyouneedDataset(Dataset):
     
     def __init__(self, **args):
@@ -10,9 +10,9 @@ class CopyisallyouneedDataset(Dataset):
         self.bert_vocab.add_tokens(['<|endoftext|>', '[PREFIX]'])
         self.prefix_token_id = self.bert_vocab.convert_tokens_to_ids('[PREFIX]')
         self.vocab = AutoTokenizer.from_pretrained(args['prefix_encoder_tokenizer'][args['lang']])
-        self.data_root_path = args['data_root_dir']
+        self.data_root_path = args['dataset_path']
         print(f'[!] load the data from {self.data_root_path}')
-        self.file_lists = [f'{self.data_root_path}/dpr_search_result_128_{i}.txt' for i in range(1)]
+        self.file_lists = [f"{self.data_root_path}/dpr_search_result_{args['chunk_length']}_{i}.txt" for i in range(1)]
         # count the number of the samples
         self.size = 0
         for path in self.file_lists:
@@ -34,7 +34,7 @@ class CopyisallyouneedDataset(Dataset):
 
         # load the base_data
         base_data = {}
-        with open(f'{self.data_root_path}/base_data_128.txt') as f:
+        with open(f"{self.data_root_path}/base_data_{args['chunk_length']}.txt") as f:
             for line in tqdm(f.readlines()):
                 line = line.strip().split('\t')
                 chunk = ' '.join(line[:-1])

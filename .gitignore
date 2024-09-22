@@ -155,3 +155,8 @@ easynlp/playground/test-phrase-copy
 !requirements.txt
 !evaluation/raw_files/*
 !make_human_annotation/*
+
+
+evaluation/unieval/*
+!evaluation/unieval/README.md
+!evaluation/unieval/test.py
