@@ -1,4 +1,8 @@
+from os import name
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from header import *
+from huggingface_hub import HfApi, HfFolder
 
 class Copyisallyouneed(nn.Module):
 
@@ -44,7 +48,7 @@ class Copyisallyouneed(nn.Module):
         output = self.model(input_ids=ids, output_hidden_states=True)['hidden_states'][-1][:, -1, :]
         return output
 
-    def get_token_loss(self, ids, hs, ids_mask):
+    def get_token_loss(self, ids, hs):
         # no pad token
         label = ids[:, 1:]
         logits = torch.matmul(
@@ -66,7 +70,7 @@ class Copyisallyouneed(nn.Module):
         ids, ids_mask = batch['gpt2_ids'], batch['gpt2_mask']
         last_hidden_states = self.model(input_ids=ids, attention_mask=ids_mask, output_hidden_states=True).hidden_states[-1]
         # get token loss
-        loss_0, acc_0 = self.get_token_loss(ids, last_hidden_states, ids_mask)
+        loss_0, acc_0 = self.get_token_loss(ids, last_hidden_states)
 
         ## encode the document with the BERT encoder model
         dids, dids_mask = batch['bert_ids'], batch['bert_mask']
@@ -155,4 +159,93 @@ class Copyisallyouneed(nn.Module):
             phrase_end_acc,
             token_start_acc,
             token_end_acc
+        )
+
+    # def save_pretrained(self, save_directory):
+    #     print(f"[!] saving model to {save_directory}")
+    #     if not os.path.exists(save_directory):
+    #         os.makedirs(save_directory)
+    #     torch.save(self.state_dict(), f"{save_directory}/model.safetensors")
+    #     with open(f"{save_directory}/config.json", "w") as f:
+    #         json.dump(self.args, f)
+    #     self.tokenizer.save_pretrained(save_directory)
+    #     self.bert_tokenizer.save_pretrained(save_directory)
+    #     self.push_to_hub(save_directory)
+        
+    
+    def save_pretrained(self, save_directory):
+        print(f"[!] saving model to {save_directory}")
+        if not os.path.exists(save_directory):
+            os.makedirs(save_directory)
+
+        # Save the encoder and decoder configurations using Hugging Face's built-in functionality
+        encoder_save_dir = os.path.join(save_directory, "encoder")
+        decoder_save_dir = os.path.join(save_directory, "decoder")
+
+        # Save the encoder (BERT) configuration and model
+        self.phrase_encoder.save_pretrained(encoder_save_dir)
+        self.bert_tokenizer.save_pretrained(encoder_save_dir)
+
+        # Save the decoder (GPT-2) configuration and model
+        self.model.save_pretrained(decoder_save_dir)
+        self.tokenizer.save_pretrained(decoder_save_dir)
+
+        # Save the overall configuration if you want to combine them in a central config.json
+        encoder_config = json.load(open(f"{encoder_save_dir}/config.json", "r"))
+        decoder_config = json.load(open(f"{decoder_save_dir}/config.json", "r"))
+        
+        config = {
+            "model_type": "encoder-decoder",
+            "encoder": encoder_config,
+            "decoder": decoder_config,
+            "dropout": self.args['dropout'],
+            "pad_token_id": self.tokenizer.pad_token_id,
+            "eos_token_id": self.tokenizer.eos_token_id,
+            "bos_token_id": self.tokenizer.bos_token_id,
+            "temperature": self.args['temp'],
+            "lang": self.args['lang']
+        }
+
+        # Save the overall config.json
+        with open(os.path.join(save_directory, "config.json"), "w") as f:
+            json.dump(config, f)
+        print(f"[!] model saved to {save_directory}")
+        self.push_to_hub(save_directory)
+
+    @classmethod
+    def from_pretrained(cls, load_directory):
+        with open(f"{load_directory}/config.json", "r") as f:
+            args = json.load(f)
+        model = cls(**args)
+
+        # Load the encoder and decoder models using their respective directories
+        encoder_save_dir = os.path.join(load_directory, "encoder")
+        decoder_save_dir = os.path.join(load_directory, "decoder")
+
+        model.phrase_encoder = AutoModel.from_pretrained(encoder_save_dir)
+        model.bert_tokenizer = AutoTokenizer.from_pretrained(encoder_save_dir)
+
+        model.model = GPT2LMHeadModel.from_pretrained(decoder_save_dir)
+        model.tokenizer = AutoTokenizer.from_pretrained(decoder_save_dir)
+
+        return model
+
+    
+    def push_to_hub(self, directory):
+        repo_name = self.args['hf_model_name']
+        api = HfApi()
+        token = HfFolder.get_token()
+        print(f"[!] pushing model to the hub: {repo_name}")
+        api.create_repo(
+            repo_id=repo_name,
+            private=True,
+            token=token,
+            exist_ok=True
+        )
+        print(f"[!] uploading model to the hub: {repo_name}")
+        api.upload_folder(
+            folder_path=directory,
+            path_in_repo="",
+            repo_id=repo_name,
+            token=token
         )

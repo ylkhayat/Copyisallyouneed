@@ -15,6 +15,7 @@ def parser_args():
     parser.add_argument('--multi_gpu', type=str, default=None)
     parser.add_argument('--total_workers', type=int)
     parser.add_argument('--model_version', type=int, default=1)
+    parser.add_argument('--hf_model_name', type=str)
     return parser.parse_args()
 
 def test_model(save_path, **args):

@@ -160,3 +160,5 @@ easynlp/playground/test-phrase-copy
 evaluation/unieval/*
 !evaluation/unieval/README.md
 !evaluation/unieval/test.py
+
+hf_models/*

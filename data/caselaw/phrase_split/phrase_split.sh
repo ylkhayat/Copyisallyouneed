@@ -4,7 +4,10 @@ mode=$1
 variant=$2
 chunk_size=$3
 
-dataset_path=/srv/elkhyo/data/iterations/$mode/$variant
+dataset_path=/srv/elkhyo/data/iterations/$mode
+if [ -n "$variant" ]; then
+  dataset_path="$dataset_path/$variant"
+fi
 
 worker=(0)
 for i in ${worker[@]}

@@ -45,7 +45,7 @@ and conduct the commands in `data/README.md` to process theses datasets.
 ##### 1. prepare the environment
 
 ```bash
-pip install -r requirments.txt
+conda env create -f environment.yml
 ```
 
 ##### 2. get into the folder and initialize the workspace

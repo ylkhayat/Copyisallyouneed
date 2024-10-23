@@ -1,4 +1,5 @@
 import argparse
+import chunk
 import re
 import os
 from tqdm import tqdm
@@ -19,7 +20,6 @@ def update_progress_bar(file_path, pbar):
     pbar.total = number_of_lines
     pbar.refresh()
 
-chunk_size = 512
 
 base_path = '/srv/elkhyo/data/iterations'
 # Define modes
@@ -34,8 +34,9 @@ MODES = {
 }
 
 parser = argparse.ArgumentParser(description='Process raw data.')
-parser.add_argument('mode', choices=MODES.keys(), help='Mode of the data processing')
-parser.add_argument('variant', nargs='?', help='Variant of the data processing',  default='')
+parser.add_argument('--mode', choices=MODES.keys(), help='Mode of the data processing')
+parser.add_argument('--chunk_size', nargs='?', type=int, help='Chunk size for the data processing', default=128)
+parser.add_argument('--variant', nargs='?', help='Variant of the data processing',  default='')
 args = parser.parse_args()
 
 mode = args.mode
@@ -43,7 +44,7 @@ variant = args.variant
 main_dir = f'{MODES[mode]}/{variant}'
 
 base_data_processed_path = os.path.join(main_dir, f'base_data.txt')
-base_data_128_processed_path = os.path.join(main_dir, f'base_data_{chunk_size}.txt')
+base_data_128_processed_path = os.path.join(main_dir, f'base_data_{args.chunk_size}.txt')
 
 pbar = tqdm(open(base_data_processed_path, 'r'), total=0)
 
@@ -53,6 +54,8 @@ thread.start()
 chunks = 0
 output_file = open(base_data_128_processed_path, 'w')
 
+
+chunk_size = args.chunk_size
 
 def write_line_to_file(writing):
     global chunks
@@ -66,7 +69,7 @@ def write_line_to_file(writing):
     counter += 1
     return 1
 
-from_hf = False
+from_hf = 'hf' in mode
 line_counter = 0
 for line in pbar:
     if from_hf:

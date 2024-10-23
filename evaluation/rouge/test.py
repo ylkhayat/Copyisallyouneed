@@ -46,7 +46,6 @@ if __name__ == "__main__":
             predictions_list.append(result)
         scores = rouge.compute(predictions=predictions_list,
                             references=reference_list,
-                            rouge_types=['rougeL', 'rougeLsum'],
                             use_aggregator=True)
     
     results = {}

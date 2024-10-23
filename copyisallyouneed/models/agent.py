@@ -60,8 +60,6 @@ class Agent:
         self.model.train()
         with autocast('cuda'):
             batch['current_step'] = current_step
-            # print(f"[!] GPT2 {batch['gpt2_ids'].shape}")
-            # print(f"[!] BERT {batch['bert_ids'].shape}")
             loss_0, loss_1, loss_2, acc_0, phrase_start_acc, phrase_end_acc, token_start_acc, token_end_acc = self.model(batch)
             loss = loss_0 + loss_1 + loss_2
             loss = loss / self.args['iter_to_accumulate']
@@ -103,7 +101,9 @@ class Agent:
         latest_checkpoint, version = checkpoints[-1]
         latest_checkpoint = os.path.join(path, latest_checkpoint)
         self.load_model(latest_checkpoint)
+        # self.save_pretrained_and_push_to_hub()
         print(f'[!] train start from step: {version}')
+
 
     def save_model_long(self, path, current_step):
         model_state_dict = self.model.module.state_dict()
@@ -119,7 +119,17 @@ class Agent:
             path
         )
         print(f'[!] save model into {path}')
+        self.save_pretrained_and_push_to_hub()
 
+    def save_pretrained_and_push_to_hub(self, push_to_hub: bool = True):
+        if 'hf_model_name' not in self.args or not self.args['hf_model_name']:
+            raise ValueError("Hugging Face model name 'hf_model_name' must be defined in args.")
+        
+        model_name = self.args['hf_model_name']
+        model_dir = f"{self.args['root_dir']}/hf_models/{model_name}"
+        
+        self.model.module.save_pretrained(model_dir)
+            
     @torch.no_grad()
     def debug_generate_one_step_fast(self, ids, phrase_reps, phrase_sources, decoding_method='greedy', temp=1., top_k=0, top_p=0.92):
         self.model.eval()

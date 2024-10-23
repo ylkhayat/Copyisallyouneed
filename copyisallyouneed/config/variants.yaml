@@ -6,33 +6,49 @@ variants:
     model_name: copyisallyouneed
     data_root_dir: /srv/elkhyo/data/iterations/veterans/cited-0_1
     port: 28444
-  "2":
-    description: "Large Blind CoG v2"
-    dataset_name: caselaw
-    model_name: copyisallyouneed
-    data_root_dir: /srv/elkhyo/data/iterations/veterans/new-cited
-    port: 28445
-  "3":
-    description: "Large Blind CoG v2"
+  # "2":
+  #   description: "Large Blind CoG v2"
+  #   dataset_name: caselaw
+  #   model_name: copyisallyouneed
+  #   data_root_dir: /srv/elkhyo/data/iterations/veterans/new-cited
+  #   port: 28445
+  # "3":
+  #   description: "Large Blind CoG v2"
+  #   dataset_name: wikitext103
+  #   model_name: copyisallyouneed
+  #   data_root_dir: /srv/elkhyo/data/iterations/wikitext103_1024
+  #   port: 2846
+  # "7":
+  #   description: "Large Blind CoG v2"
+  #   dataset_name: caselaw
+  #   model_name: copyisallyouneed
+  #   data_root_dir: /srv/elkhyo/data/iterations/veterans/cited
+  #   port: 28447
+  # "8":
+  #   description: "Large Blind CoG v2 — 1024"
+  #   dataset_name: caselaw
+  #   model_name: copyisallyouneed
+  #   data_root_dir: /srv/elkhyo/data/iterations/veterans/chunked
+  #   port: 28448
+  # "9":
+  #   description: "Large Blind CoG v2 — 1024"
+  #   dataset_name: caselaw
+  #   model_name: copyisallyouneed
+  #   data_root_dir: /srv/elkhyo/data/iterations/veterans/chunked
+  #   port: 28449
+  "10":
+    description: "Large Blind CoG v2 — 128"
     dataset_name: wikitext103
     model_name: copyisallyouneed
+    repo_name: cog-wikitext103
+    organization: ylkhayat
     data_root_dir: /srv/elkhyo/data/iterations/wikitext103_1024
-    port: 2846
-  "7":
-    description: "Large Blind CoG v2"
+    port: 28450
+  "11":
+    description: "Large Blind CoG v3 — 128"
     dataset_name: caselaw
+    repo_name: cog-caselaw
+    organization: ylkhayat
     model_name: copyisallyouneed
-    data_root_dir: /srv/elkhyo/data/iterations/veterans/cited
-    port: 28447
-  "8":
-    description: "Large Blind CoG v2 — 1024"
-    dataset_name: caselaw
-    model_name: copyisallyouneed
-    data_root_dir: /srv/elkhyo/data/iterations/veterans/chunked
-    port: 28448
-  "9":
-    description: "Large Blind CoG v2 — 1024"
-    dataset_name: caselaw
-    model_name: copyisallyouneed
-    data_root_dir: /srv/elkhyo/data/iterations/veterans/chunked
-    port: 28449
+    data_root_dir: /srv/elkhyo/data/iterations/veterans_hf
+    port: 28451

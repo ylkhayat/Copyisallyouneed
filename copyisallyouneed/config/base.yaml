@@ -12,6 +12,7 @@ models:
 
 
 # ========= Global configuration ========== #
+model_type: encoder_decoder
 # root_dir: /dockerdata/johntianlan/sources/Copyisallyouneed
 root_dir: /srv/elkhyo/Copyisallyouneed
 # data_root_dir: /dockerdata/johntianlan/sources/Copyisallyouneed/data/wikitext103_1024

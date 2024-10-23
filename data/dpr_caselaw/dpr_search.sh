@@ -10,7 +10,10 @@ fi
 mode=$1
 variant=${2:-""}
 
-dataset_path=/srv/elkhyo/data/iterations/$mode/$variant
+dataset_path=/srv/elkhyo/data/iterations/$mode
+if [ -n "$variant" ]; then
+  dataset_path="$dataset_path/$variant"
+fi
 
 gpu_ids=(${CUDA_VISIBLE_DEVICES//,/ })
 CUDA_VISIBLE_DEVICES=$gpu_ids torchrun --nproc_per_node=${#gpu_ids[@]} --master_addr 127.0.0.1 --master_port 28205 retrieve.py\
@@ -18,5 +21,5 @@ CUDA_VISIBLE_DEVICES=$gpu_ids torchrun --nproc_per_node=${#gpu_ids[@]} --master_
     --dataset_path "$dataset_path" \
     --batch_size 512 \
     --pool_size 1024 \
-    --chunk_length 1024 \
+    --chunk_length 128 \
     --chunk_size 1000000

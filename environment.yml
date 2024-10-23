@@ -5,6 +5,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - python=3.10
   - typing
   - pyyaml==6.0
   - datasets==2.6.1
@@ -27,3 +28,4 @@ dependencies:
   - pynvml
   - jieba
   - ipdb
+  - nanopq

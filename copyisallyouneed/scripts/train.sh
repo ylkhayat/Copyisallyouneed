@@ -14,6 +14,8 @@ root_dir=$(shyaml get-value root_dir < "$CONFIG_FILE")
 description=$(shyaml get-value variants."$version".description < "$CONFIG_FILE")
 dataset_name=$(shyaml get-value variants."$version".dataset_name < "$CONFIG_FILE")
 model_name=$(shyaml get-value variants."$version".model_name < "$CONFIG_FILE")
+repo_name=$(shyaml get-value variants."$version".repo_name < "$CONFIG_FILE")
+organization=$(shyaml get-value variants."$version".organization < "$CONFIG_FILE")
 data_root_dir=$(shyaml get-value variants."$version".data_root_dir < "$CONFIG_FILE")
 port=$(shyaml get-value variants."$version".port < "$CONFIG_FILE")
 # ========== metadata ========== #
@@ -27,6 +29,7 @@ fi
 echo "[!] Running training for model version '$version'"
 echo "[!] Dataset: '$dataset_name', Model_name: '$model_name', Port: '#$port'"
 echo "[!] Description: '$description', Data Root Dir: '$data_root_dir'"
+echo "[!] Hub Model Name: '$organization/$repo_name'"
 
 # backup
 recoder_file=$root_dir/rest/$dataset_name/$model_name/recoder_$version.txt
@@ -51,4 +54,5 @@ CUDA_VISIBLE_DEVICES=$gpu_ids torchrun --nproc_per_node=${#gpu_ids[@]} --max-res
     --model "$model_name" \
     --multi_gpu "$gpu_ids" \
     --total_workers ${#gpu_ids[@]} \
-    --model_version "$version"
+    --model_version "$version" \
+    --hf_model_name "$organization/$repo_name"
